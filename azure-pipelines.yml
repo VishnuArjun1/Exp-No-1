@@ -1,19 +1,36 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
+# Trigger the pipeline when changes are pushed to the main branch
 trigger:
 - main
 
+# Specify the virtual machine image to use for the build
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
+# Define the steps in the pipeline
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+# Step 1: Setup Java version (adjust if you need a different version)
+- task: UseJavaVersion@1
+  inputs:
+    versionSpec: '11'  # You can change this to the Java version you need
+    jdkArchitecture: 'x64'
+  displayName: 'Set up Java 11'
+
+# Step 2: Run Maven build (this will clean, build, and install your Maven project)
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'pom.xml'  # Point to the location of your Maven POM file
+    goals: 'clean install'  # This command will clean and install your project
+    publishJUnitResults: true  # Publish JUnit results to Azure DevOps
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'  # Location of test reports
+    javaHomeOption: 'JDKVersion'
+    mavenVersionOption: 'Default'  # Use default Maven version provided by Azure
+    mavenOptions: '-Xmx1024m'  # Increase heap memory limit (optional)
+  displayName: 'Maven Build'
+
+# Step 3: Publish build artifacts (optional, if you want to store build output)
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'  # Specify the folder with build artifacts
+    artifactName: 'drop'  # The name of the artifact (can be any name)
+  displayName: 'Publish Build Artifacts'
